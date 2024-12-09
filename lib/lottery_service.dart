@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
@@ -26,36 +25,53 @@ class LotteryService {
 
   Map<String, Map<int, List<dynamic>>> groupBetsByLotteryAndDraw(
     Map<String, dynamic> bets) {
-    final groupedBets = <String, Map<int, List<dynamic>>>{};
+  final groupedBets = <String, Map<int, List<dynamic>>>{};
+  
+  // Iterowanie przez wszystkie zakłady w mapie
+  bets.forEach((betKey, betData) {
+    final lotteryName = betData['lotteryName'];  // Nazwa loterii
+    final nextDrawId = betData['nextDrawId'];    // ID następnego losowania
 
-    bets.forEach((key, betData) {
-      final lotteryName = betData['lotteryName'];
-      final nextDrawId = betData['nextDrawId'];
+    // Jeżeli nie ma jeszcze grupy dla tej loterii, tworzę nową
+    if (!groupedBets.containsKey(lotteryName)) {
+      groupedBets[lotteryName] = {};
+    }
+    
+    // Jeżeli nie ma jeszcze grupy dla tego ID losowania w danej loterii, tworzę nową listę
+    if (!groupedBets[lotteryName]!.containsKey(nextDrawId)) {
+      groupedBets[lotteryName]![nextDrawId] = [];
+    }
 
-      if (!groupedBets.containsKey(lotteryName)) {
-        groupedBets[lotteryName] = {};
-      }
-      if (!groupedBets[lotteryName]!.containsKey(nextDrawId)) {
-        groupedBets[lotteryName]![nextDrawId] = [];
-      }
-
-      groupedBets[lotteryName]![nextDrawId]!.add(betData);
+    // Dodajemy zakład do odpowiedniej grupy w danej loterii i losowaniu
+    groupedBets[lotteryName]![nextDrawId]!.add({
+      'betKey': betKey, // dodajemy betKey do danych
+      'betData': betData  // dodajemy dane zakładu
     });
+  });
 
-    return groupedBets;
-  }
+  return groupedBets;
+}
+
 
   Future<double> getJackpotAmount(String lotteryName) async {
 
     String url =
-        'https://www.lotto.pl/api/ts/core/calculate/jackpot?gameType=$lotteryName&multiplier=false&systemSelected=Podstawowy&numberOfWagers=1&numberOfDraws=1';
+        'https://developers.lotto.pl/api/open/v1/lotteries/info/game-jackpot';
+    
+    final headers = {
+      "accept": "application/json",
+      "secret": "ZaQdWY58zmZa8o83FdURxiaIdUQcug7/ZrJwDFzHJbA=",
+    };
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url).replace(queryParameters: {
+        "gameType": lotteryName
+      }), headers: headers);
 
       if (response.statusCode == 200) {
         Map<dynamic, dynamic> data = jsonDecode(response.body);
-        double amount = data['jackpot'];
+        developer.log(data.toString());
+        double amount = data['jackpotValue'];
         return amount;
 
       } else {
@@ -102,27 +118,27 @@ class LotteryService {
     required String lotteryName,
     required int nextDrawId,
     required double priceValue,
+    required String betId
   }) async {
     try {
       // Referencja do lokalizacji w Firebase Database
       final DatabaseReference winsRef =
           FirebaseDatabase.instance.ref('users/$uid/wins');
-      
-      // uuid 
-      final String uuid = FirebaseAuth.instance.currentUser!.uid;
+
+      Map<String, dynamic> winsMap = {};
 
       // Tworzenie obiektu do zapisania
-      final Map<String, dynamic> winData = {
+      winsMap[betId] = {
         'lotteryName': lotteryName,
         'nextDrawId': nextDrawId,
         'priceValue': priceValue,
       };
-
+      
       // Dodanie obiektu do bazy danych
-      await winsRef.child(uuid).set(winData);
+      await winsRef.update(winsMap);
 
       // Logowanie powodzenia
-      developer.log("Win added to database: $winData");
+      developer.log("Win added to database: $winsMap");
     } catch (e) {
       // Logowanie błędu
       developer.log("Error adding win to database: $e");
@@ -131,48 +147,60 @@ class LotteryService {
 
 
   Future<void> checkUserBets(String uid) async {
-    try {
+  try {
+    // 1. Pobranie zakładów użytkownika
+    final bets = await fetchUserBets(uid);
+    if (bets.isEmpty) return;
 
-      // 1. Pobranie zakładów użytkownika
-      final bets = await fetchUserBets(uid);
-      if (bets.isEmpty) return;
+    // 2. Grupowanie zakładów według gry i losowania
+    final groupedBets = groupBetsByLotteryAndDraw(bets);
 
-      // 2. Grupowanie zakładów według gry i losowania
-      final groupedBets = groupBetsByLotteryAndDraw(bets);
+    // 3. Sprawdzanie wyników dla każdej grupy
+    for (final lotteryName in groupedBets.keys) {
+      await getJackpotAmount(lotteryName);
+      
+      for (final drawId in groupedBets[lotteryName]!.keys) {
+        var winningNumbers = await drawResultsById(lotteryName, drawId);
+        
+        // Iterowanie po wszystkich zakładach w danej grupie (loteria, losowanie)
+        for (var i = 0; i < groupedBets[lotteryName]![drawId]!.length; i++) {
+          var bet = groupedBets[lotteryName]![drawId]![i];
+          
+          // Zakładając, że 'bet' zawiera zarówno 'betKey', jak i 'betData'
+          var betKey = bet['betKey'];  // betKey
+          var betData = bet['betData']; // betData (dane zakładu)
 
+          // Zakładając, że 'betData' ma właściwości 'basicNum' i 'additionalNum'
+          var basicNum = betData['basicNum'];
+          var additionalNum = betData.containsKey('additionalNum') ? betData['additionalNum'] : [];
+          
+          // Obliczanie trafionych numerów
+          var basicHits = countHits(basicNum, winningNumbers[0]['resultsJson']);
+          var addHits = countHits(additionalNum, winningNumbers[0]['specialResults']);
+          
+          // Obliczanie numeru nagrody
+          var prizeNumber = calculateLotteryPrizeNumber(lotteryName, drawId, basicHits, addHits);
 
-      // 3. Sprawdzanie wyników dla każdej grupy
-      for (final lotteryName in groupedBets.keys) {
-        await getJackpotAmount(lotteryName);
-        for (final drawId in groupedBets[lotteryName]!.keys) {
-          var winningNumbers = await drawResultsById(lotteryName, drawId);
-          developer.log(winningNumbers.toString());
-          //await checkPrizesForGroup(lotteryName, drawId);
-          for(var i=0; i<=groupedBets[lotteryName]![drawId]!.length; i++){
-            var bet = groupedBets[lotteryName]![drawId]![i];
-            var basicNum = bet['basicNum'];
-            var additionalNum = bet.containsKey('additionalNum') ? bet['additionalNum'] : [];
-            var basicHits = countHits(basicNum, winningNumbers[0]['resultsJson']);
-            var addHits = countHits(additionalNum, winningNumbers[0]['specialResults']);
-            var prizeNumber = calculateLotteryPrizeNumber(lotteryName, drawId, basicHits, addHits);
-            if(prizeNumber != 'Brak nagrody'){
-              var priceVal = await checkPrizesForGroup(lotteryName, drawId, prizeNumber);
-              if(priceVal != 0){
-                await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: priceVal);
-              }else{
-                var newValue = await getJackpotAmount(lotteryName);
-                await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: newValue);
-              }
-            }else{
-              developer.log('Brak nagrody');
+          // Sprawdzanie, czy jest nagroda
+          if (prizeNumber != 'Brak nagrody') {
+            var priceVal = await checkPrizesForGroup(lotteryName, drawId, prizeNumber);
+            if (priceVal != 0) {
+              await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: priceVal, betId: betKey);
+            } else {
+              var newValue = await getJackpotAmount(lotteryName);
+              await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: newValue, betId: betKey);
             }
+          } else {
+            developer.log('Brak nagrody');
           }
         }
       }
-    } catch (e) {
-      developer.log("Error: $e");
     }
+  } catch (e) {
+    developer.log("Error: $e");
   }
+}
+
 
   int countHits(List<dynamic> userNumbers, List<dynamic> winningNumbers) {
     int hits = 0;

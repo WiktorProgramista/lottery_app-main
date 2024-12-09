@@ -131,11 +131,20 @@ class _UserWinsScreenState extends State<UserWinsScreen> {
     );
   }
 
-  String formatPrice(int number){
-    var numberFormat = NumberFormat("#,###.##", "pl_PL"); // Możesz dostosować format np. ".##" dla dwóch miejsc po przecinku
-    String formattedNumber = numberFormat.format(number).replaceAll(',', ' ');
-    return formattedNumber;
-  }
+  String formatPrice(num number) {
+    if (number is int || number == number.toInt()) {
+        // Jeśli liczba jest liczbą całkowitą, konwertuj na int i sformatuj
+        var numberFormat = NumberFormat("#,###", "pl_PL");
+        String formattedNumber = numberFormat.format(number.toInt()).replaceAll(',', ' ');
+        return formattedNumber.toString();
+    } else {
+        // Jeśli liczba jest liczbą zmiennoprzecinkową, formatuj jako double
+        var numberFormat = NumberFormat("#,###.##", "pl_PL");
+        String formattedNumber = numberFormat.format(number).replaceAll(',', ' ');
+        return formattedNumber.toString();
+    }
+
+}
 
   Widget winInfo({required String label, required String value}) {
     return Padding(
