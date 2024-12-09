@@ -22,25 +22,23 @@ class _ResultsListScreenState extends State<ResultsListScreen> {
   User? user = FirebaseAuth.instance.currentUser;
 
   // Function to check if results are available
+  List<dynamic>? cachedResults;
+
   Future<List<dynamic>> _checkIfResultsMatch() async {
+    if (cachedResults != null) return cachedResults!;
     var bet = widget.betGroup[0];
     bool isDrawCompleted = await lotteryService.isDrawCompleted(
         bet['betData']['lotteryName'], bet['betData']['nextDrawId']);
 
     if (isDrawCompleted) {
-      var results = await lotteryService.drawResultsById(
+      cachedResults = await lotteryService.drawResultsById(
           bet['betData']['lotteryName'], bet['betData']['nextDrawId']);
-      return results;
+      await lotteryService.checkUserBets(user!.uid);
+      return cachedResults!;
     } else {
       developer.log('Draw not completed');
       return [];
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    lotteryService.checkUserBets(user!.uid);
   }
 
 
