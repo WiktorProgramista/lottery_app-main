@@ -93,20 +93,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             const SizedBox(height: 15.0),
             // Przekazujemy funkcję wylogowującą się z kontekstem
-            _customButton('Wyloguj się', Colors.deepPurple, () => firebaseService.logout(context)),
+            _customButton('Wyloguj się', () => firebaseService.logout(context)),
             const SizedBox(height: 15.0),
             if (userId != null &&
                 userId!.isNotEmpty) // Sprawdzamy, czy mamy userId
-              _customButton('Usuń zakłady', Colors.red, () => usunZaklady(userId!)),
+              _customButton('Usuń zakłady',() => usunZaklady(userId!)),
                const SizedBox(height: 15.0),
-              _customButton('Usuń wygrane', Colors.red, ()=> usunWygrane(userId!)),
+              _customButton('Usuń wygrane', ()=> usunWygrane(userId!)),
           ],
         ),
       ),
     );
   }
 
-  Widget _customButton(String text, Color color, Function() function) {
+  Widget _customButton(String text, Function() function) {
     return ElevatedButton(
       onPressed: () async {
         await function(); // Wywołanie funkcji bez kontekstu
