@@ -42,7 +42,7 @@ class _UserWinsScreenState extends State<UserWinsScreen> {
               );
             } else if (!snapshot.hasData ||
                 snapshot.data!.snapshot.value == null) {
-              return const Center(child: Text('Brak danych do wyświetlenia.'));
+              return const Center(child: Text('Brak wygranych.'));
             } else {
               final Map<dynamic, dynamic> wins =
                   Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
