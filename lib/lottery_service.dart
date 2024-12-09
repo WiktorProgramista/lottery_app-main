@@ -45,6 +45,29 @@ class LotteryService {
     return groupedBets;
   }
 
+  Future<double> getJackpotAmount(String lotteryName) async {
+
+    String url =
+        'https://www.lotto.pl/api/ts/core/calculate/jackpot?gameType=$lotteryName&multiplier=false&systemSelected=Podstawowy&numberOfWagers=1&numberOfDraws=1';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        Map<dynamic, dynamic> data = jsonDecode(response.body);
+        double amount = data['jackpot'];
+        return amount;
+
+      } else {
+        developer.log("Błąd: ${response.statusCode}");
+        return 0.0;
+      }
+    } catch (e) {
+      developer.log("Błąd: $e");
+      return 0.0;
+    }
+  }
+
   Future<double> checkPrizesForGroup(String lotteryName, int drawId, String prizeNum) async {
     await Future.delayed(const Duration(seconds: 3)); // Dodanie opóźnienia
 
@@ -60,8 +83,7 @@ class LotteryService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        var prizeVal  =data[0]['prizes'][prizeNum]['prizeValue'];
-        developer.log(prizeVal.toString());
+        var prizeVal  = data[0]['prizes'][prizeNum]['prizeValue'];
         return prizeVal;
 
       } else {
@@ -75,37 +97,37 @@ class LotteryService {
   }
 
 
-Future<void> addWinToDatabase({
-  required String uid,
-  required String lotteryName,
-  required int nextDrawId,
-  required double priceValue,
-}) async {
-  try {
-    // Referencja do lokalizacji w Firebase Database
-    final DatabaseReference winsRef =
-        FirebaseDatabase.instance.ref('users/$uid/wins');
-    
-    // uuid 
-    final String uuid = FirebaseAuth.instance.currentUser!.uid;
+  Future<void> addWinToDatabase({
+    required String uid,
+    required String lotteryName,
+    required int nextDrawId,
+    required double priceValue,
+  }) async {
+    try {
+      // Referencja do lokalizacji w Firebase Database
+      final DatabaseReference winsRef =
+          FirebaseDatabase.instance.ref('users/$uid/wins');
+      
+      // uuid 
+      final String uuid = FirebaseAuth.instance.currentUser!.uid;
 
-    // Tworzenie obiektu do zapisania
-    final Map<String, dynamic> winData = {
-      'lotteryName': lotteryName,
-      'nextDrawId': nextDrawId,
-      'priceValue': priceValue,
-    };
+      // Tworzenie obiektu do zapisania
+      final Map<String, dynamic> winData = {
+        'lotteryName': lotteryName,
+        'nextDrawId': nextDrawId,
+        'priceValue': priceValue,
+      };
 
-    // Dodanie obiektu do bazy danych
-    await winsRef.child(uuid).set(winData);
+      // Dodanie obiektu do bazy danych
+      await winsRef.child(uuid).set(winData);
 
-    // Logowanie powodzenia
-    developer.log("Win added to database: $winData");
-  } catch (e) {
-    // Logowanie błędu
-    developer.log("Error adding win to database: $e");
+      // Logowanie powodzenia
+      developer.log("Win added to database: $winData");
+    } catch (e) {
+      // Logowanie błędu
+      developer.log("Error adding win to database: $e");
+    }
   }
-}
 
 
   Future<void> checkUserBets(String uid) async {
@@ -121,6 +143,7 @@ Future<void> addWinToDatabase({
 
       // 3. Sprawdzanie wyników dla każdej grupy
       for (final lotteryName in groupedBets.keys) {
+        await getJackpotAmount(lotteryName);
         for (final drawId in groupedBets[lotteryName]!.keys) {
           var winningNumbers = await drawResultsById(lotteryName, drawId);
           developer.log(winningNumbers.toString());
@@ -134,7 +157,12 @@ Future<void> addWinToDatabase({
             var prizeNumber = calculateLotteryPrizeNumber(lotteryName, drawId, basicHits, addHits);
             if(prizeNumber != 'Brak nagrody'){
               var priceVal = await checkPrizesForGroup(lotteryName, drawId, prizeNumber);
-              await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: priceVal);
+              if(priceVal != 0){
+                await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: priceVal);
+              }else{
+                var newValue = await getJackpotAmount(lotteryName);
+                await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: newValue);
+              }
             }else{
               developer.log('Brak nagrody');
             }

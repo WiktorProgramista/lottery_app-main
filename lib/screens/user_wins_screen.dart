@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 
 class UserWinsScreen extends StatefulWidget {
   const UserWinsScreen({super.key});
@@ -119,7 +120,7 @@ class _UserWinsScreenState extends State<UserWinsScreen> {
           const SizedBox(height: 10.0),
           winInfo(
             label: 'Wygrana:',
-            value: '${priceValue.toString()} zł',
+            value: '${formatPrice(priceValue)} zł',
           ),
           winInfo(
             label: 'Klucz:',
@@ -128,6 +129,12 @@ class _UserWinsScreenState extends State<UserWinsScreen> {
         ],
       ),
     );
+  }
+
+  String formatPrice(int number){
+    var numberFormat = NumberFormat("#,###.##", "pl_PL"); // Możesz dostosować format np. ".##" dla dwóch miejsc po przecinku
+    String formattedNumber = numberFormat.format(number).replaceAll(',', ' ');
+    return formattedNumber;
   }
 
   Widget winInfo({required String label, required String value}) {

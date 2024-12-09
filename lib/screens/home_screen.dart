@@ -19,8 +19,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // Lista ekranów do przełączania
   final List<Widget> _screens = [
     const HomeView(), // Ekran główny
-    const BetListScreen(), // Ekran zakładów
     const UserWinsScreen(), // Ekran wygranych
+    const BetListScreen(), // Ekran zakładów
     const ProfileScreen() // Ekran profilu
   ];
 
@@ -54,17 +54,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
-            'assets/svg/bars.svg',
-            
-          ),
-          label: 'Zakłady',
-        ),
-        BottomNavigationBarItem(
-          icon: SvgPicture.asset(
             'assets/svg/chart.svg',
             
           ),
           label: 'Wygrane',
+        ),
+        BottomNavigationBarItem(
+          icon: SvgPicture.asset(
+            'assets/svg/bars.svg',
+            
+          ),
+          label: 'Zakłady',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
