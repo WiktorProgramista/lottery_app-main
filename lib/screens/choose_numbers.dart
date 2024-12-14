@@ -1,10 +1,8 @@
 import 'dart:math';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottery_app/firebase_service.dart';
 import 'package:lottery_app/lottery_service.dart';
 import 'package:lottery_app/objects/lottery.dart';
@@ -142,7 +140,7 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _iconButton('edit', () {
+                        _iconButton(Icons.edit, () {
                           setState(() {
                             _isBetEditing = true;
                             _selectedBasicNum.value = lotteryBet.basicNum;
@@ -151,13 +149,13 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
                           });
                           _showBottomSheet(widget.lottery);
                         }),
-                        _iconButton('refresh', () {
+                        _iconButton(Icons.refresh, () {
                           setState(() {
                             _savedBets.removeAt(index);
                             _addRandomNumbers(index);
                           });
                         }),
-                        _iconButton('remove', () {
+                        _iconButton(Icons.delete, () {
                           setState(() {
                             _savedBets.removeAt(index);
                           });
@@ -522,16 +520,10 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
     );
   }
 
-  Widget _iconButton(String name, Function function) {
+  Widget _iconButton(IconData icon, Function function) {
     return InkWell(
       onTap: () => function(),
-      child: SizedBox(
-        child: SvgPicture.asset(
-          'assets/svg/$name.svg',
-          width: 23.0,
-          height: 23.0,
-        ),
-      ),
+      child: SizedBox(child: Icon(icon)),
     );
   }
 }
