@@ -523,7 +523,12 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
   Widget _iconButton(IconData icon, Function function) {
     return InkWell(
       onTap: () => function(),
-      child: SizedBox(child: Icon(icon)),
+      child: SizedBox(
+          child: Icon(
+        icon,
+        color: Colors.black,
+        size: 28.0,
+      )),
     );
   }
 }
