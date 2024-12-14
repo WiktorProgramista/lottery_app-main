@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lottery_app/firebase_service.dart';
 import 'package:lottery_app/screens/register_screen.dart';
@@ -13,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
             TextField(
               controller: _email,
               decoration: InputDecoration(
-                  
                   hintText: 'Wpisz email',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
@@ -40,7 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true,
               controller: _password,
               decoration: InputDecoration(
-                  
+                  suffixIcon: GestureDetector(
+                      onTap: () => _resetPassword(_email),
+                      child: const Icon(Icons.help)),
                   hintText: 'Wpisz hasło',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20.0),
@@ -75,11 +78,34 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _customButton(String text, VoidCallback function) {
     return ElevatedButton(
         onPressed: function,
-  
         child: Text(
           text,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ));
+  }
+
+  Future<void> _resetPassword(TextEditingController emailController) async {
+    try {
+      // Sprawdzenie czy e-mail nie jest pusty
+      if (emailController.text.isEmpty) {
+        setState(() {
+          _firebaseService.alert(context, 'Proszę podać adres e-mail');
+        });
+        return;
+      }
+
+      // Wysyłanie e-maila z linkiem do resetowania hasła
+      await _auth.sendPasswordResetEmail(email: emailController.text);
+      setState(() {
+        _firebaseService.alert(
+            context, 'Wysłano link do resetowania hasła na Twój e-mail');
+      });
+    } catch (e) {
+      // Obsługa błędów
+      setState(() {
+        _firebaseService.alert(context, 'Wystąpił błąd: ${e.toString()}');
+      });
+    }
   }
 }
