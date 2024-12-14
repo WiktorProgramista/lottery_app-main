@@ -7,12 +7,12 @@ ThemeData appTheme(BuildContext context) {
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.deepPurple,
       elevation: 0,
-      titleTextStyle:  TextStyle(
+      titleTextStyle: TextStyle(
         color: Colors.white,
         fontSize: 20.0,
         fontWeight: FontWeight.bold,
       ),
-      iconTheme:  IconThemeData(
+      iconTheme: IconThemeData(
         color: Colors.white,
       ),
     ),
@@ -89,7 +89,6 @@ ThemeData appTheme(BuildContext context) {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        
         backgroundColor: Colors.deepPurple,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.0),
@@ -104,7 +103,8 @@ ThemeData appTheme(BuildContext context) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20.0),
         borderSide: BorderSide(color: Colors.deepPurple.shade200),

@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 
 class LotteryService {
-  
   Future<Map<String, dynamic>> fetchUserBets(String uid) async {
     final DatabaseReference betsRef =
         FirebaseDatabase.instance.ref('users/$uid/bets');
@@ -24,56 +23,53 @@ class LotteryService {
   }
 
   Map<String, Map<int, List<dynamic>>> groupBetsByLotteryAndDraw(
-    Map<String, dynamic> bets) {
-  final groupedBets = <String, Map<int, List<dynamic>>>{};
-  
-  // Iterowanie przez wszystkie zakłady w mapie
-  bets.forEach((betKey, betData) {
-    final lotteryName = betData['lotteryName'];  // Nazwa loterii
-    final nextDrawId = betData['nextDrawId'];    // ID następnego losowania
+      Map<String, dynamic> bets) {
+    final groupedBets = <String, Map<int, List<dynamic>>>{};
 
-    // Jeżeli nie ma jeszcze grupy dla tej loterii, tworzę nową
-    if (!groupedBets.containsKey(lotteryName)) {
-      groupedBets[lotteryName] = {};
-    }
-    
-    // Jeżeli nie ma jeszcze grupy dla tego ID losowania w danej loterii, tworzę nową listę
-    if (!groupedBets[lotteryName]!.containsKey(nextDrawId)) {
-      groupedBets[lotteryName]![nextDrawId] = [];
-    }
+    // Iterowanie przez wszystkie zakłady w mapie
+    bets.forEach((betKey, betData) {
+      final lotteryName = betData['lotteryName']; // Nazwa loterii
+      final nextDrawId = betData['nextDrawId']; // ID następnego losowania
 
-    // Dodajemy zakład do odpowiedniej grupy w danej loterii i losowaniu
-    groupedBets[lotteryName]![nextDrawId]!.add({
-      'betKey': betKey, // dodajemy betKey do danych
-      'betData': betData  // dodajemy dane zakładu
+      // Jeżeli nie ma jeszcze grupy dla tej loterii, tworzę nową
+      if (!groupedBets.containsKey(lotteryName)) {
+        groupedBets[lotteryName] = {};
+      }
+
+      // Jeżeli nie ma jeszcze grupy dla tego ID losowania w danej loterii, tworzę nową listę
+      if (!groupedBets[lotteryName]!.containsKey(nextDrawId)) {
+        groupedBets[lotteryName]![nextDrawId] = [];
+      }
+
+      // Dodajemy zakład do odpowiedniej grupy w danej loterii i losowaniu
+      groupedBets[lotteryName]![nextDrawId]!.add({
+        'betKey': betKey, // dodajemy betKey do danych
+        'betData': betData // dodajemy dane zakładu
+      });
     });
-  });
 
-  return groupedBets;
-}
-
+    return groupedBets;
+  }
 
   Future<double> getJackpotAmount(String lotteryName) async {
-
     String url =
         'https://developers.lotto.pl/api/open/v1/lotteries/info/game-jackpot';
-    
+
     final headers = {
       "accept": "application/json",
       "secret": "ZaQdWY58zmZa8o83FdURxiaIdUQcug7/ZrJwDFzHJbA=",
     };
 
     try {
-      final response = await http.get(Uri.parse(url).replace(queryParameters: {
-        "gameType": lotteryName
-      }), headers: headers);
+      final response = await http.get(
+          Uri.parse(url).replace(queryParameters: {"gameType": lotteryName}),
+          headers: headers);
 
       if (response.statusCode == 200) {
         Map<dynamic, dynamic> data = jsonDecode(response.body);
         developer.log(data.toString());
         double amount = data['jackpotValue'];
         return amount;
-
       } else {
         developer.log("Błąd: ${response.statusCode}");
         return 0.0;
@@ -84,7 +80,8 @@ class LotteryService {
     }
   }
 
-  Future<double> checkPrizesForGroup(String lotteryName, int drawId, String prizeNum) async {
+  Future<double> checkPrizesForGroup(
+      String lotteryName, int drawId, String prizeNum) async {
     await Future.delayed(const Duration(seconds: 3)); // Dodanie opóźnienia
 
     final headers = {
@@ -99,9 +96,8 @@ class LotteryService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        var prizeVal  = data[0]['prizes'][prizeNum]['prizeValue'];
+        var prizeVal = data[0]['prizes'][prizeNum]['prizeValue'];
         return prizeVal;
-
       } else {
         developer.log("Błąd: ${response.statusCode}");
         return 0.0;
@@ -112,14 +108,12 @@ class LotteryService {
     }
   }
 
-
-  Future<void> addWinToDatabase({
-    required String uid,
-    required String lotteryName,
-    required int nextDrawId,
-    required double priceValue,
-    required String betId
-  }) async {
+  Future<void> addWinToDatabase(
+      {required String uid,
+      required String lotteryName,
+      required int nextDrawId,
+      required double priceValue,
+      required String betId}) async {
     try {
       // Referencja do lokalizacji w Firebase Database
       final DatabaseReference winsRef =
@@ -133,7 +127,7 @@ class LotteryService {
         'nextDrawId': nextDrawId,
         'priceValue': priceValue,
       };
-      
+
       // Dodanie obiektu do bazy danych
       await winsRef.update(winsMap);
 
@@ -145,62 +139,76 @@ class LotteryService {
     }
   }
 
-
   Future<void> checkUserBets(String uid) async {
-  try {
-    // 1. Pobranie zakładów użytkownika
-    final bets = await fetchUserBets(uid);
-    if (bets.isEmpty) return;
+    try {
+      // 1. Pobranie zakładów użytkownika
+      final bets = await fetchUserBets(uid);
+      if (bets.isEmpty) return;
 
-    // 2. Grupowanie zakładów według gry i losowania
-    final groupedBets = groupBetsByLotteryAndDraw(bets);
+      // 2. Grupowanie zakładów według gry i losowania
+      final groupedBets = groupBetsByLotteryAndDraw(bets);
 
-    // 3. Sprawdzanie wyników dla każdej grupy
-    for (final lotteryName in groupedBets.keys) {
-      await getJackpotAmount(lotteryName);
-      
-      for (final drawId in groupedBets[lotteryName]!.keys) {
-        var winningNumbers = await drawResultsById(lotteryName, drawId);
-        
-        // Iterowanie po wszystkich zakładach w danej grupie (loteria, losowanie)
-        for (var i = 0; i < groupedBets[lotteryName]![drawId]!.length; i++) {
-          var bet = groupedBets[lotteryName]![drawId]![i];
-          
-          // Zakładając, że 'bet' zawiera zarówno 'betKey', jak i 'betData'
-          var betKey = bet['betKey'];  // betKey
-          var betData = bet['betData']; // betData (dane zakładu)
+      // 3. Sprawdzanie wyników dla każdej grupy
+      for (final lotteryName in groupedBets.keys) {
+        await getJackpotAmount(lotteryName);
 
-          // Zakładając, że 'betData' ma właściwości 'basicNum' i 'additionalNum'
-          var basicNum = betData['basicNum'];
-          var additionalNum = betData.containsKey('additionalNum') ? betData['additionalNum'] : [];
-          
-          // Obliczanie trafionych numerów
-          var basicHits = countHits(basicNum, winningNumbers[0]['resultsJson']);
-          var addHits = countHits(additionalNum, winningNumbers[0]['specialResults']);
-          
-          // Obliczanie numeru nagrody
-          var prizeNumber = calculateLotteryPrizeNumber(lotteryName, drawId, basicHits, addHits);
+        for (final drawId in groupedBets[lotteryName]!.keys) {
+          var winningNumbers = await drawResultsById(lotteryName, drawId);
 
-          // Sprawdzanie, czy jest nagroda
-          if (prizeNumber != 'Brak nagrody') {
-            var priceVal = await checkPrizesForGroup(lotteryName, drawId, prizeNumber);
-            if (priceVal != 0) {
-              await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: priceVal, betId: betKey);
+          // Iterowanie po wszystkich zakładach w danej grupie (loteria, losowanie)
+          for (var i = 0; i < groupedBets[lotteryName]![drawId]!.length; i++) {
+            var bet = groupedBets[lotteryName]![drawId]![i];
+
+            // Zakładając, że 'bet' zawiera zarówno 'betKey', jak i 'betData'
+            var betKey = bet['betKey']; // betKey
+            var betData = bet['betData']; // betData (dane zakładu)
+
+            // Zakładając, że 'betData' ma właściwości 'basicNum' i 'additionalNum'
+            var basicNum = betData['basicNum'];
+            var additionalNum = betData.containsKey('additionalNum')
+                ? betData['additionalNum']
+                : [];
+
+            // Obliczanie trafionych numerów
+            var basicHits =
+                countHits(basicNum, winningNumbers[0]['resultsJson']);
+            var addHits =
+                countHits(additionalNum, winningNumbers[0]['specialResults']);
+
+            // Obliczanie numeru nagrody
+            var prizeNumber = calculateLotteryPrizeNumber(
+                lotteryName, drawId, basicHits, addHits);
+
+            // Sprawdzanie, czy jest nagroda
+            if (prizeNumber != 'Brak nagrody') {
+              var priceVal =
+                  await checkPrizesForGroup(lotteryName, drawId, prizeNumber);
+              if (priceVal != 0) {
+                await addWinToDatabase(
+                    uid: uid,
+                    lotteryName: lotteryName,
+                    nextDrawId: drawId,
+                    priceValue: priceVal,
+                    betId: betKey);
+              } else {
+                var newValue = await getJackpotAmount(lotteryName);
+                await addWinToDatabase(
+                    uid: uid,
+                    lotteryName: lotteryName,
+                    nextDrawId: drawId,
+                    priceValue: newValue,
+                    betId: betKey);
+              }
             } else {
-              var newValue = await getJackpotAmount(lotteryName);
-              await addWinToDatabase(uid: uid, lotteryName: lotteryName, nextDrawId: drawId, priceValue: newValue, betId: betKey);
+              developer.log('Brak nagrody');
             }
-          } else {
-            developer.log('Brak nagrody');
           }
         }
       }
+    } catch (e) {
+      developer.log("Error: $e");
     }
-  } catch (e) {
-    developer.log("Error: $e");
   }
-}
-
 
   int countHits(List<dynamic> userNumbers, List<dynamic> winningNumbers) {
     int hits = 0;
@@ -261,7 +269,6 @@ class LotteryService {
     }
   }
 
-
   Future<bool> isDrawCompleted(String lotteryName, int drawId) async {
     String url =
         "https://www.lotto.pl/api/lotteries/draw-results/by-number-per-game?gameType=$lotteryName&drawSystemId=$drawId&index=1&size=10&sort=drawSystemId&order=DESC";
@@ -300,7 +307,6 @@ class LotteryService {
     }
   }
 
-  
   String calculateLotteryPrizeNumber(
       String lotteryName, int drawId, int basicHits, int addHits) {
     if (lotteryName == "Lotto") {
@@ -370,6 +376,24 @@ class LotteryService {
         return "12"; // 2+1 - Dwunasta nagroda
       } else {
         return "Brak nagrody";
+      }
+    } else if (lotteryName == "EkstraPensja") {
+      // Zasady gry Ekstra Pensja
+      // Zakładając, że w grze Ekstra Pensja są następujące zasady:
+      if (basicHits == 5 && addHits == 1) {
+        return "1"; // Pierwsza nagroda za 5 trafień i 1 dodatkowy
+      } else if (basicHits == 5 && addHits == 0) {
+        return "2"; // Druga nagroda za 5 trafień
+      } else if (basicHits == 4 && addHits == 1) {
+        return "3"; // Trzecia nagroda za 4 trafienia i 1 dodatkowy
+      } else if (basicHits == 4 && addHits == 0) {
+        return "4"; // Czwarta nagroda za 4 trafienia
+      } else if (basicHits == 3 && addHits == 1) {
+        return "5"; // Piąta nagroda za 3 trafienia i 1 dodatkowy
+      } else if (basicHits == 3 && addHits == 0) {
+        return "6"; // Szósta nagroda za 3 trafienia
+      } else {
+        return "Brak nagrody"; // Jeśli nie spełnia żadnego z warunków
       }
     } else {
       return "Nieznana loteria";

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottery_app/app%20update/app_update_service.dart';
 import 'package:lottery_app/constants.dart';
 import 'package:lottery_app/screens/bet_list_screen.dart';
 import 'package:lottery_app/screens/choose_numbers.dart';
@@ -14,6 +15,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final AppUpdateService appUpdateService = AppUpdateService();
+
   int _selectedIndex = 0;
 
   // Lista ekranów do przełączania
@@ -29,6 +32,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    appUpdateService.checkAppVersion(context);
   }
 
   @override
@@ -48,37 +57,33 @@ class _HomeScreenState extends State<HomeScreen> {
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svg/home.svg',
-           
           ),
           label: 'Strona główna',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svg/chart.svg',
-            
           ),
           label: 'Wygrane',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svg/bars.svg',
-            
           ),
           label: 'Zakłady',
         ),
         BottomNavigationBarItem(
           icon: SvgPicture.asset(
             'assets/svg/profile.svg',
-            
           ),
-        
           label: 'Konto',
         ),
       ],
       currentIndex: _selectedIndex,
       selectedItemColor: theme.primaryColor,
       unselectedItemColor: Colors.grey,
-      selectedLabelStyle: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+      selectedLabelStyle:
+          theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
       unselectedLabelStyle: theme.textTheme.bodyMedium,
       onTap: _onItemTapped,
     );
@@ -98,7 +103,8 @@ class HomeView extends StatelessWidget {
         children: lotterys.map((lotteryName) {
           return Card(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
               child: Center(
                 child: Column(
                   children: [
@@ -125,7 +131,8 @@ class HomeView extends StatelessWidget {
                         },
                         child: Text(
                           'Zagraj',
-                          style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white),
+                          style: theme.textTheme.bodyLarge
+                              ?.copyWith(color: Colors.white),
                         ),
                       ),
                     )
