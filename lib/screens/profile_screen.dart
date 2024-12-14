@@ -97,9 +97,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 15.0),
             if (userId != null &&
                 userId!.isNotEmpty) // Sprawdzamy, czy mamy userId
-              _customButton('Usuń zakłady',() => usunZaklady(userId!)),
-               const SizedBox(height: 15.0),
-              _customButton('Usuń wygrane', ()=> usunWygrane(userId!)),
+              _customButton('Usuń zakłady', () => usunZaklady(userId!)),
+            const SizedBox(height: 15.0),
+            _customButton('Usuń wygrane', () => usunWygrane(userId!)),
           ],
         ),
       ),
@@ -111,7 +111,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onPressed: () async {
         await function(); // Wywołanie funkcji bez kontekstu
       },
-     
       child: Text(
         text,
         style: const TextStyle(

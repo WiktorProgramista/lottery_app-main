@@ -91,7 +91,10 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
                               gradient: LinearGradient(
                                   begin: Alignment.bottomLeft,
                                   end: Alignment.topCenter,
-                                  colors: [Colors.deepPurple, Colors.deepPurple.shade300])),
+                                  colors: [
+                                    Colors.deepPurple,
+                                    Colors.deepPurple.shade300
+                                  ])),
                           child: Center(
                             child: Text(
                               lotteryBet.toString(),
@@ -447,21 +450,22 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
         .additionalNumRange; // Zakres liczb dodatkowych (np. 10 w Lotto 6 z 49)
 
     setState(() {
-      List<int> basicNumbers =
-            _generateRandomNumbers(basic, basicNumberRange);
+      List<int> basicNumbers = _generateRandomNumbers(basic, basicNumberRange);
 
-        // Generowanie dodatkowych liczb
-        List<int> additionalNumbers =
-            _generateRandomNumbers(additional, additionalNumberRange);
+      // Generowanie dodatkowych liczb
+      List<int> additionalNumbers =
+          _generateRandomNumbers(additional, additionalNumberRange);
 
-        // Tworzymy nowy obiekt LotteryBet z losowymi liczbami
-        _savedBets.insert(index, LotteryBet(
-          lotteryName: name,
-          basicNum: basicNumbers,
-          additionalNum: additionalNumbers,
-          nextDrawId:
-              1, // Możesz dostosować ten identyfikator w zależności od potrzeby
-        ));
+      // Tworzymy nowy obiekt LotteryBet z losowymi liczbami
+      _savedBets.insert(
+          index,
+          LotteryBet(
+            lotteryName: name,
+            basicNum: basicNumbers,
+            additionalNum: additionalNumbers,
+            nextDrawId:
+                1, // Możesz dostosować ten identyfikator w zależności od potrzeby
+          ));
     });
   }
 
@@ -510,7 +514,6 @@ class _ChooseNumbersState extends State<ChooseNumbers> {
       width: double.infinity,
       child: ElevatedButton(
           onPressed: function,
-          
           child: Text(
             text,
             style: const TextStyle(

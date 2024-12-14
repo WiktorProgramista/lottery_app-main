@@ -41,7 +41,6 @@ class _ResultsListScreenState extends State<ResultsListScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
